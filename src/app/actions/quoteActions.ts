@@ -234,9 +234,9 @@ export async function updateQuoteDetails(quoteIdStr: string, formData: any) {
   }
 }
 
-export async function loadMoreQuotes(page: number, limit: number = 20) {
+export async function loadMoreQuotes(page: number, limit: number = 20, searchQuery: string = '') {
   try {
-    const quotes = await getQuotesMapped(page, limit);
+    const quotes = await getQuotesMapped(page, limit, searchQuery);
     return { success: true, quotes };
   } catch (error) {
     console.error('Error loading more quotes:', error);

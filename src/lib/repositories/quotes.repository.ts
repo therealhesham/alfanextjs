@@ -18,11 +18,49 @@ export interface QuoteDTO {
   statusId: string | null;
 }
 
-export async function getQuotesMapped(page: number = 1, limit: number = 20): Promise<QuoteDTO[]> {
+export async function getQuotesMapped(page: number = 1, limit: number = 20, searchQuery: string = ''): Promise<QuoteDTO[]> {
   const skip = (page - 1) * limit;
+  
+  const whereClause: any = {};
+  
+  if (searchQuery) {
+    const isNumeric = !isNaN(Number(searchQuery));
+    
+    whereClause.OR = [
+      {
+        users_elevator_quotes_client_user_idTousers: {
+          OR: [
+            { name: { contains: searchQuery } },
+            { phone_number: { contains: searchQuery } }
+          ]
+        }
+      },
+      {
+        users_elevator_quotes_created_by_user_idTousers: {
+          name: { contains: searchQuery }
+        }
+      },
+      {
+        brands: {
+          name: { contains: searchQuery }
+        }
+      }
+    ];
+
+    if (isNumeric) {
+      whereClause.OR.push({
+        quote_number: Number(searchQuery)
+      });
+      whereClause.OR.push({
+        id: BigInt(searchQuery)
+      });
+    }
+  }
+
   const quotes = await prisma.elevator_quotes.findMany({
     skip,
     take: limit,
+    where: whereClause,
     include: {
       users_elevator_quotes_client_user_idTousers: true, // Client
       users_elevator_quotes_created_by_user_idTousers: true, // Created By
