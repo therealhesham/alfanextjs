@@ -52,8 +52,9 @@ export async function getMaintenanceContracts(): Promise<MaintenanceContractData
       is_hidden: c.is_hidden,
       notes_count: c._count.contract_notes,
     }));
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching maintenance contracts:", error);
+    require('fs').writeFileSync('next-error.log', String(error?.stack || error));
     throw new Error("فشل في جلب عقود الصيانة");
   }
 }

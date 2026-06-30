@@ -19,7 +19,7 @@ interface MaintenanceClientProps {
 }
 
 export default function MaintenanceClient({ initialContracts }: MaintenanceClientProps) {
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [searchTerm, setSearchTerm] = useState('');
   const [showArchived, setShowArchived] = useState(false);
 
