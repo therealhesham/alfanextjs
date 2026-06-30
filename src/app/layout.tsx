@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cairo } from "next/font/google";
+import Navbar from "@/components/Navbar";
 import "./globals.css";
 
 const cairo = Cairo({
@@ -31,6 +32,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)] font-sans">
+        <Navbar />
         {children}
       </body>
     </html>
