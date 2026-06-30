@@ -466,14 +466,14 @@ model projects {
 }
 
 model quote_notes {
-  id             BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
-  quote_id       BigInt          @db.UnsignedBigInt
-  author_user_id BigInt          @db.UnsignedBigInt
-  note_text      String          @db.Text
-  created_at     DateTime        @default(now()) @db.Timestamp(0)
-  updated_at     DateTime        @default(now()) @db.Timestamp(0)
+  id              BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  quote_id        BigInt          @db.UnsignedBigInt
+  author_user_id  BigInt          @db.UnsignedBigInt
+  note_text       String          @db.Text
+  created_at      DateTime        @default(now()) @db.Timestamp(0)
+  updated_at      DateTime        @default(now()) @db.Timestamp(0)
   elevator_quotes elevator_quotes @relation(fields: [quote_id], references: [id], onDelete: Cascade)
-  users          users           @relation(fields: [author_user_id], references: [id])
+  users           users           @relation(fields: [author_user_id], references: [id])
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -759,14 +759,14 @@ enum maintenance_contracts_contract_type {
 }
 
 enum quote_status_enum {
-  MANAGEMENT_QUOTE_APPROVAL     @map("اعتماد العرض من الادارة")
-  CLIENT_QUOTE_APPROVAL         @map("اعتماد العرض من العميل")
-  MANAGEMENT_CONTRACT_APPROVAL  @map("اعتماد العقد من الادارة")
-  CLIENT_CONTRACT_APPROVAL      @map("اعتماد العقد من العميل")
-  FIRST_PAYMENT                 @map("سداد الدفعة الاولى")
-  PHASE_1_MATERIAL_ORDER        @map("طلب مواد المرحلة الاولى")
-  PHASE_1_MATERIAL_DELIVERY     @map("تسليم مواد المرحلة الأولى")
-  PHASE_1_MATERIAL_RECEIPT      @map("استلام مواد المرحلة الأولى")
-  PHASE_1_RECEIPT_PROTOCOL      @map("محضر استلام المرحلة الأولى")
-  CANCELLED                     @map("ملغي")
+  MANAGEMENT_QUOTE_APPROVAL    @map("اعتماد العرض من الادارة")
+  CLIENT_QUOTE_APPROVAL        @map("اعتماد العرض من العميل")
+  MANAGEMENT_CONTRACT_APPROVAL @map("اعتماد العقد من الادارة")
+  CLIENT_CONTRACT_APPROVAL     @map("اعتماد العقد من العميل")
+  FIRST_PAYMENT                @map("سداد الدفعة الاولى")
+  PHASE_1_MATERIAL_ORDER       @map("طلب مواد المرحلة الاولى")
+  PHASE_1_MATERIAL_DELIVERY    @map("تسليم مواد المرحلة الأولى")
+  PHASE_1_MATERIAL_RECEIPT     @map("استلام مواد المرحلة الأولى")
+  PHASE_1_RECEIPT_PROTOCOL     @map("محضر استلام المرحلة الأولى")
+  CANCELLED                    @map("ملغي")
 }
