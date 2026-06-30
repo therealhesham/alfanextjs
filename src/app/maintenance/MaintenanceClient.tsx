@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
 import { MaintenanceContractData } from "@/app/actions/maintenanceActions";
 import ContractCard from "@/components/maintenance/ContractCard";
 import ContractTableRow from "@/components/maintenance/ContractTableRow";
@@ -72,6 +73,12 @@ export default function MaintenanceClient({ initialContracts }: MaintenanceClien
             <h1 className="text-2xl font-bold text-[#1e293b] m-0">عقود الصيانة</h1>
             <p className="text-sm text-slate-500 mt-1">إدارة ومتابعة عقود الصيانة الدورية والشاملة</p>
           </div>
+        </div>
+        <div className="flex-shrink-0">
+          <Link href="/maintenance/new" className="inline-flex items-center justify-center bg-[#977e2b] hover:bg-[#b89635] text-white font-bold py-2.5 px-6 rounded-full shadow-md hover:shadow-lg transition-all gap-2 text-sm">
+            <span>+</span>
+            <span>إضافة عقد صيانة</span>
+          </Link>
         </div>
       </div>
 
