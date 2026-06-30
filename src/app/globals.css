@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8f9fa;
+  --foreground: #2c2c2c;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-cairo), Arial, sans-serif;
+  --color-gold: #977e2b;
+  --color-gold-hover: #b89635;
+  --color-gold-light: rgba(151, 126, 43, 0.1);
+  --color-dark-gray: #2c2c2c;
+  --color-medium-gray: #666;
+  --color-light-gray: #f8f9fa;
+  --color-border: #e5e7eb;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Keep it light as the original UI seems light-themed based on CSS variables */
+    --background: #f8f9fa;
+    --foreground: #2c2c2c;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden !important;
+}
+
+/* Custom UI Components from original template */
+@layer components {
+  .btn-gold {
+    @apply bg-[var(--color-gold)] text-white px-6 py-3 rounded-md font-semibold transition-all duration-300 hover:bg-[var(--color-gold-hover)] hover:-translate-y-0.5 hover:shadow-lg flex items-center gap-2;
+  }
+  
+  .btn-gray {
+    @apply bg-gray-600 text-white px-5 py-2.5 rounded-md font-medium transition-all duration-300 hover:bg-gray-700 hover:-translate-y-0.5 flex items-center gap-2;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-[var(--color-border)] p-6;
+  }
+  
+  .table-container {
+    @apply overflow-x-auto;
+  }
+  
+  .modern-table {
+    @apply w-full border-collapse text-sm;
+  }
+  
+  .modern-table thead tr:first-child {
+    background-color: #b89635;
+  }
+  
+  .modern-table thead tr:first-child .table-header {
+    color: #ffffff;
+    background-color: transparent;
+    background-image: none;
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+  
+  .modern-table thead tr:first-child .table-header:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+  
+  .modern-table thead tr:first-child .table-header .fas {
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  .table-header {
+    @apply bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-4 text-center font-bold text-[var(--color-dark-gray)] border-b-2 border-[var(--color-border)] text-sm cursor-pointer select-none transition-all duration-300 hover:bg-[var(--color-gold-light)] hover:text-[var(--color-gold)] whitespace-nowrap;
+  }
+  
+  .table-cell {
+    @apply px-4 py-4 border-b border-gray-100 align-middle transition-all duration-300 text-center;
+  }
+  
+  .table-row {
+    @apply transition-all duration-300;
+    position: relative;
+    background-image:
+        linear-gradient(to right, var(--row-status-fade, rgba(185, 150, 53, 0.16)) 0%, rgba(185, 150, 53, 0) 55%),
+        linear-gradient(to left, var(--row-status-fade, rgba(185, 150, 53, 0.16)) 0%, rgba(185, 150, 53, 0) 55%);
+    background-repeat: no-repeat;
+    background-size: 56px 100%, 56px 100%;
+    background-position: left top, right top;
+  }
+  
+  .quote-id {
+    @apply font-bold text-[var(--color-gold)] text-base text-center;
+  }
+  
+  .quote-date {
+    @apply text-[var(--color-medium-gray)] text-sm font-medium text-center;
+  }
+  
+  .quote-client {
+    @apply font-semibold text-[var(--color-dark-gray)] text-center;
+  }
+  
+  .quote-price {
+    @apply font-bold text-[var(--color-dark-gray)] text-base flex items-center gap-2 justify-center;
+    direction: rtl;
+  }
+  
+  .quote-brand {
+    @apply inline-flex items-center px-3 py-1.5 bg-[var(--color-gold-light)] text-[var(--color-gold)] rounded-md text-xs font-semibold border border-[var(--color-gold)] justify-center;
+  }
+  
+  .quote-user {
+    @apply text-[var(--color-medium-gray)] text-sm font-medium text-center;
+  }
+  
+  .status-badge {
+    @apply inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold border transition-all duration-200;
+    background-color: var(--color-light-gray);
+    border-color: var(--color-border);
+    color: var(--color-dark-gray);
+  }
+  
+  .btn-action {
+    @apply p-2 border-0 rounded-md cursor-pointer text-sm transition-all duration-300 flex items-center justify-center w-9 h-9;
+  }
+  
+  .btn-view {
+    @apply bg-gray-600 text-white hover:bg-gray-700 hover:-translate-y-0.5 hover:shadow-md;
+  }
+  
+  .btn-edit {
+    @apply bg-[var(--color-gold)] text-white hover:bg-[var(--color-gold-hover)] hover:-translate-y-0.5 hover:shadow-md;
+  }
+  
+  .btn-word {
+    @apply bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-0.5 hover:shadow-md;
+  }
+  
+  .btn-pdf {
+    @apply bg-red-600 text-white hover:bg-red-700 hover:-translate-y-0.5 hover:shadow-md;
+  }
+  
+  .btn-print {
+    @apply bg-white border border-red-800 text-red-800 font-bold hover:bg-red-50 hover:text-white hover:bg-red-800 hover:border-red-900 hover:shadow-md;
+  }
+}

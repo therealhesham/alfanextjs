@@ -1,0 +1,759 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model brands {
+  id              BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
+  name            String            @unique(map: "uk_brands_name") @db.VarChar(100)
+  code            String?           @db.VarChar(50)
+  created_at      DateTime          @default(now()) @db.Timestamp(0)
+  elevator_addons elevator_addons[]
+  elevator_quotes elevator_quotes[]
+  elevators       elevators[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model complaints {
+  id                 BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  name               String?  @db.VarChar(255)
+  title              String   @db.VarChar(255)
+  details            String?  @db.Text
+  it_reply           String?  @db.Text
+  image              Json?
+  created_by_user_id BigInt?  @db.UnsignedBigInt
+  baserow_row_id     BigInt?  @unique(map: "uk_complaints_baserow") @db.UnsignedBigInt
+  created_at         DateTime @default(now()) @db.Timestamp(0)
+  updated_at         DateTime @default(now()) @db.Timestamp(0)
+  users              users?   @relation(fields: [created_by_user_id], references: [id], map: "fk_complaints_created_by")
+
+  @@index([created_by_user_id], map: "idx_complaints_created_by")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model contract_notes {
+  id                      BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  name                    String?               @db.VarChar(255)
+  details                 String?               @db.Text
+  created_by              String?               @db.VarChar(255)
+  created_by_user_id      BigInt?               @db.UnsignedBigInt
+  maintenance_contract_id BigInt                @db.UnsignedBigInt
+  baserow_row_id          BigInt?               @unique(map: "uk_contract_notes_baserow") @db.UnsignedBigInt
+  created_at              DateTime              @default(now()) @db.Timestamp(0)
+  maintenance_contracts   maintenance_contracts @relation(fields: [maintenance_contract_id], references: [id], onDelete: Cascade, map: "fk_contract_notes_contract")
+  users                   users?                @relation(fields: [created_by_user_id], references: [id], map: "fk_contract_notes_user")
+
+  @@index([maintenance_contract_id], map: "idx_contract_notes_contract")
+  @@index([created_by_user_id], map: "idx_contract_notes_user")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model data_length_metrics {
+  id                      BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  name                    String                 @db.VarChar(255)
+  notes                   String?                @db.Text
+  record_count            Int                    @default(0) @db.UnsignedInt
+  maintenance_contract_id BigInt?                @db.UnsignedBigInt
+  baserow_row_id          BigInt?                @unique(map: "uk_data_length_metrics_baserow") @db.UnsignedBigInt
+  created_at              DateTime               @default(now()) @db.Timestamp(0)
+  updated_at              DateTime               @default(now()) @db.Timestamp(0)
+  maintenance_contracts   maintenance_contracts? @relation(fields: [maintenance_contract_id], references: [id], map: "fk_data_length_metrics_contract")
+
+  @@index([maintenance_contract_id], map: "idx_data_length_metrics_contract")
+}
+
+model districts {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  group_id       BigInt?  @db.UnsignedBigInt
+  name           String   @db.VarChar(255)
+  is_active      Boolean  @default(true)
+  is_hidden      Boolean  @default(false)
+  baserow_row_id BigInt?  @unique(map: "uk_districts_baserow") @db.UnsignedBigInt
+  created_at     DateTime @default(now()) @db.Timestamp(0)
+  updated_at     DateTime @default(now()) @db.Timestamp(0)
+  groups         groups?  @relation(fields: [group_id], references: [id], map: "fk_districts_group")
+
+  @@index([group_id], map: "idx_districts_group")
+}
+
+model elevator_addons {
+  id                    BigInt                       @id @default(autoincrement()) @db.UnsignedBigInt
+  brand_id              BigInt?                      @db.UnsignedBigInt
+  name                  String                       @db.VarChar(255)
+  price                 Decimal?                     @db.Decimal(14, 2)
+  price_effect          elevator_addons_price_effect @default(once)
+  details               String?                      @db.Text
+  door_type             String?                      @db.VarChar(100)
+  is_active             Boolean                      @default(true)
+  baserow_row_id        BigInt?                      @unique(map: "uk_elevator_addons_baserow") @db.UnsignedBigInt
+  created_at            DateTime                     @default(now()) @db.Timestamp(0)
+  updated_at            DateTime                     @default(now()) @db.Timestamp(0)
+  brands                brands?                      @relation(fields: [brand_id], references: [id], map: "fk_addons_brand")
+  elevator_quote_addons elevator_quote_addons[]
+
+  @@index([brand_id], map: "idx_addons_brand")
+}
+
+model elevator_quote_addons {
+  elevator_quote_id BigInt          @db.UnsignedBigInt
+  elevator_addon_id BigInt          @db.UnsignedBigInt
+  quantity          Decimal         @default(1.00) @db.Decimal(10, 2)
+  unit_price        Decimal?        @db.Decimal(14, 2)
+  elevator_addons   elevator_addons @relation(fields: [elevator_addon_id], references: [id], onDelete: Cascade, map: "fk_quote_addons_addon")
+  elevator_quotes   elevator_quotes @relation(fields: [elevator_quote_id], references: [id], onDelete: Cascade, map: "fk_quote_addons_quote")
+
+  @@id([elevator_quote_id, elevator_addon_id])
+  @@index([elevator_addon_id], map: "idx_quote_addons_addon")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model elevator_quotes {
+  id                                              BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  quote_number                                    Int?                    @db.UnsignedInt
+  project_id                                      BigInt?                 @db.UnsignedBigInt
+  client_user_id                                  BigInt?                 @db.UnsignedBigInt
+  created_by_user_id                              BigInt?                 @db.UnsignedBigInt
+  brand_id                                        BigInt?                 @db.UnsignedBigInt
+  quote_status_id                                 BigInt?                 @db.UnsignedBigInt
+  number_of_elevators                             Int                     @default(1) @db.UnsignedTinyInt
+  machine_type                                    String?                 @db.Text
+  machine_position                                String?                 @db.VarChar(255)
+  operation_method                                String?                 @db.VarChar(255)
+  electrical_current                              String?                 @db.VarChar(100)
+  shaft_material                                  String?                 @db.VarChar(255)
+  shaft_internal_size                             String?                 @db.VarChar(255)
+  number_of_stops                                 Int?                    @db.UnsignedTinyInt
+  load_kg                                         Decimal?                @db.Decimal(10, 2)
+  number_of_persons                               Int?                    @db.UnsignedTinyInt
+  number_of_entrances                             Int?                    @db.UnsignedTinyInt
+  stop_names                                      String?                 @db.VarChar(500)
+  guide_rail                                      String?                 @db.VarChar(500)
+  counterweight_guide_rails                       String?                 @db.VarChar(500)
+  traction_ropes                                  String?                 @db.VarChar(500)
+  traveling_cable                                 String?                 @db.VarChar(500)
+  car_frame                                       String?                 @db.VarChar(500)
+  car_finish                                      String?                 @db.VarChar(500)
+  inside_car_dimensions                           String?                 @db.VarChar(255)
+  roof                                            String?                 @db.VarChar(255)
+  emergency_light                                 String?                 @db.VarChar(255)
+  lift_machine                                    String?                 @db.VarChar(500)
+  floor                                           String?                 @db.VarChar(255)
+  cop                                             String?                 @db.VarChar(500)
+  door_operation                                  String?                 @db.Text
+  door_dimensions                                 String?                 @db.Text
+  inner_door                                      String?                 @db.Text
+  landing_door_main                               String?                 @db.VarChar(255)
+  landing_door_other                              String?                 @db.VarChar(255)
+  safety_devices                                  Json?
+  total_price                                     Decimal?                @db.Decimal(14, 2)
+  discount_amount                                 Decimal?                @db.Decimal(14, 2)
+  price_details                                   String?                 @db.Text
+  supply_and_install                              String?                 @db.Text
+  warranty_and_free_maintenance                   String?                 @db.Text
+  preparatory_works                               String?                 @db.Text
+  client_approval_status                          String?                 @db.VarChar(100)
+  approval_time                                   DateTime?               @db.DateTime(0)
+  rejection_reason                                String?                 @db.Text
+  pdf_url                                         String?                 @db.VarChar(2048)
+  status_enum                                     quote_status_enum?
+  baserow_row_id                                  BigInt?                 @unique(map: "uk_elevator_quotes_baserow") @db.UnsignedBigInt
+  created_at                                      DateTime                @default(now()) @db.Timestamp(0)
+  updated_at                                      DateTime                @default(now()) @db.Timestamp(0)
+  elevator_quote_addons                           elevator_quote_addons[]
+  brands                                          brands?                 @relation(fields: [brand_id], references: [id], map: "fk_quotes_brand")
+  users_elevator_quotes_client_user_idTousers     users?                  @relation("elevator_quotes_client_user_idTousers", fields: [client_user_id], references: [id], map: "fk_quotes_client")
+  users_elevator_quotes_created_by_user_idTousers users?                  @relation("elevator_quotes_created_by_user_idTousers", fields: [created_by_user_id], references: [id], map: "fk_quotes_created_by")
+  projects                                        projects?               @relation(fields: [project_id], references: [id], map: "fk_quotes_project")
+  quote_statuses                                  quote_statuses?         @relation(fields: [quote_status_id], references: [id], map: "fk_quotes_status")
+  elevators                                       elevators[]
+
+  @@index([brand_id], map: "idx_quotes_brand")
+  @@index([client_user_id], map: "idx_quotes_client")
+  @@index([created_by_user_id], map: "idx_quotes_created_by")
+  @@index([quote_number], map: "idx_quotes_number")
+  @@index([project_id], map: "idx_quotes_project")
+  @@index([quote_status_id], map: "idx_quotes_status")
+}
+
+model elevators {
+  id                BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  elevator_quote_id BigInt          @db.UnsignedBigInt
+  brand_id          BigInt?         @db.UnsignedBigInt
+  price             Decimal?        @db.Decimal(14, 2)
+  vat               Decimal?        @db.Decimal(14, 2)
+  stops             String?         @db.VarChar(100)
+  total_price       Decimal?        @db.Decimal(14, 2)
+  gear              String?         @db.VarChar(100)
+  load_kg           Decimal?        @db.Decimal(10, 2)
+  number_of_persons Int?            @db.UnsignedTinyInt
+  door_type         String?         @db.VarChar(100)
+  machine_position  String?         @db.VarChar(255)
+  baserow_row_id    BigInt?         @unique(map: "uk_elevators_baserow") @db.UnsignedBigInt
+  created_at        DateTime        @default(now()) @db.Timestamp(0)
+  updated_at        DateTime        @default(now()) @db.Timestamp(0)
+  brands            brands?         @relation(fields: [brand_id], references: [id], map: "fk_elevators_brand")
+  elevator_quotes   elevator_quotes @relation(fields: [elevator_quote_id], references: [id], onDelete: Cascade, map: "fk_elevators_quote")
+
+  @@index([brand_id], map: "idx_elevators_brand")
+  @@index([elevator_quote_id], map: "idx_elevators_quote")
+}
+
+model emergency_card_items {
+  id                    BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  name                  String?                 @db.VarChar(255)
+  notes                 String?                 @db.Text
+  is_active             Boolean                 @default(true)
+  emergency_card_id     BigInt                  @db.UnsignedBigInt
+  baserow_row_id        BigInt?                 @unique(map: "uk_emergency_card_items_baserow") @db.UnsignedBigInt
+  created_at            DateTime                @default(now()) @db.Timestamp(0)
+  emergency_cards       emergency_cards         @relation(fields: [emergency_card_id], references: [id], onDelete: Cascade, map: "fk_emergency_card_items_card")
+  emergency_visit_notes emergency_visit_notes[]
+
+  @@index([emergency_card_id], map: "idx_emergency_card_items_card")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model emergency_cards {
+  id                      BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  maintenance_contract_id BigInt                  @db.UnsignedBigInt
+  technician_user_id      BigInt?                 @db.UnsignedBigInt
+  group_id                BigInt?                 @db.UnsignedBigInt
+  visit_date              DateTime?               @db.Date
+  notes                   String?                 @db.Text
+  items                   Json?
+  is_confirmed            Boolean                 @default(false)
+  baserow_row_id          BigInt?                 @unique(map: "uk_emergency_cards_baserow") @db.UnsignedBigInt
+  created_at              DateTime                @default(now()) @db.Timestamp(0)
+  updated_at              DateTime                @default(now()) @db.Timestamp(0)
+  emergency_card_items    emergency_card_items[]
+  maintenance_contracts   maintenance_contracts   @relation(fields: [maintenance_contract_id], references: [id], onDelete: Cascade, map: "fk_emergency_cards_contract")
+  groups                  groups?                 @relation(fields: [group_id], references: [id], map: "fk_emergency_cards_group")
+  users                   users?                  @relation(fields: [technician_user_id], references: [id], map: "fk_emergency_cards_technician")
+  emergency_reports       emergency_reports[]
+  emergency_requests      emergency_requests[]
+  emergency_visit_notes   emergency_visit_notes[]
+  parts_quotes            parts_quotes[]
+  visit_ratings           visit_ratings[]
+  visit_reports           visit_reports[]
+
+  @@index([group_id], map: "fk_emergency_cards_group")
+  @@index([maintenance_contract_id], map: "idx_emergency_cards_contract")
+  @@index([technician_user_id], map: "idx_emergency_cards_technician")
+}
+
+model emergency_reports {
+  id                      BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  name                    String?                @db.VarChar(255)
+  report_content          String?                @db.Text
+  report_date             DateTime?              @db.Date
+  emergency_card_id       BigInt?                @db.UnsignedBigInt
+  maintenance_contract_id BigInt?                @db.UnsignedBigInt
+  baserow_row_id          BigInt?                @unique(map: "uk_emergency_reports_baserow") @db.UnsignedBigInt
+  created_at              DateTime               @default(now()) @db.Timestamp(0)
+  emergency_cards         emergency_cards?       @relation(fields: [emergency_card_id], references: [id], map: "fk_emergency_reports_card")
+  maintenance_contracts   maintenance_contracts? @relation(fields: [maintenance_contract_id], references: [id], map: "fk_emergency_reports_contract")
+
+  @@index([emergency_card_id], map: "idx_emergency_reports_card")
+  @@index([maintenance_contract_id], map: "idx_emergency_reports_contract")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model emergency_requests {
+  id                      BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  name                    String?                @db.VarChar(255)
+  status                  Json?
+  is_active               Boolean                @default(true)
+  client_user_id          BigInt?                @db.UnsignedBigInt
+  emergency_card_id       BigInt?                @db.UnsignedBigInt
+  maintenance_contract_id BigInt?                @db.UnsignedBigInt
+  baserow_row_id          BigInt?                @unique(map: "uk_emergency_requests_baserow") @db.UnsignedBigInt
+  created_at              DateTime               @default(now()) @db.Timestamp(0)
+  updated_at              DateTime               @default(now()) @db.Timestamp(0)
+  emergency_cards         emergency_cards?       @relation(fields: [emergency_card_id], references: [id], map: "fk_emergency_requests_card")
+  users                   users?                 @relation(fields: [client_user_id], references: [id], map: "fk_emergency_requests_client")
+  maintenance_contracts   maintenance_contracts? @relation(fields: [maintenance_contract_id], references: [id], map: "fk_emergency_requests_contract")
+
+  @@index([emergency_card_id], map: "idx_emergency_requests_card")
+  @@index([client_user_id], map: "idx_emergency_requests_client")
+  @@index([maintenance_contract_id], map: "idx_emergency_requests_contract")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model emergency_visit_notes {
+  id                     BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  name                   String?               @db.VarChar(255)
+  note                   String?               @db.Text
+  photo                  Json?
+  emergency_card_id      BigInt                @db.UnsignedBigInt
+  emergency_card_item_id BigInt?               @db.UnsignedBigInt
+  baserow_row_id         BigInt?               @unique(map: "uk_emergency_visit_notes_baserow") @db.UnsignedBigInt
+  created_at             DateTime              @default(now()) @db.Timestamp(0)
+  emergency_cards        emergency_cards       @relation(fields: [emergency_card_id], references: [id], onDelete: Cascade, map: "fk_emergency_visit_notes_card")
+  emergency_card_items   emergency_card_items? @relation(fields: [emergency_card_item_id], references: [id], map: "fk_emergency_visit_notes_item")
+
+  @@index([emergency_card_id], map: "idx_emergency_visit_notes_card")
+  @@index([emergency_card_item_id], map: "idx_emergency_visit_notes_item")
+}
+
+model groups {
+  id                     BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  name                   String                   @db.VarChar(255)
+  notes                  String?                  @db.Text
+  is_active              Boolean                  @default(true)
+  is_hidden              Boolean                  @default(false)
+  baserow_row_id         BigInt?                  @unique(map: "uk_groups_baserow") @db.UnsignedBigInt
+  created_at             DateTime                 @default(now()) @db.Timestamp(0)
+  updated_at             DateTime                 @default(now()) @db.Timestamp(0)
+  districts              districts[]
+  emergency_cards        emergency_cards[]
+  maintenance_contracts  maintenance_contracts[]
+  routine_card_templates routine_card_templates[]
+  routine_visits         routine_visits[]
+}
+
+model maintenance_contract_payments {
+  id                      BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  maintenance_contract_id BigInt                @db.UnsignedBigInt
+  amount                  Decimal               @db.Decimal(14, 2)
+  paid_at                 DateTime?             @db.DateTime(0)
+  created_at              DateTime              @default(now()) @db.Timestamp(0)
+  maintenance_contracts   maintenance_contracts @relation(fields: [maintenance_contract_id], references: [id], onDelete: Cascade, map: "fk_contract_payments_contract")
+
+  @@index([maintenance_contract_id], map: "idx_contract_payments_contract")
+}
+
+model maintenance_contracts {
+  id                                                    BigInt                               @id @default(autoincrement()) @db.UnsignedBigInt
+  project_id                                            BigInt?                              @db.UnsignedBigInt
+  group_id                                              BigInt?                              @db.UnsignedBigInt
+  pricing_plan_id                                       BigInt?                              @db.UnsignedBigInt
+  client_user_id                                        BigInt?                              @db.UnsignedBigInt
+  technician_user_id                                    BigInt?                              @db.UnsignedBigInt
+  start_date                                            DateTime?                            @db.Date
+  end_date                                              DateTime?                            @db.Date
+  vat_percentage                                        Decimal?                             @default(15.00) @db.Decimal(5, 2)
+  total_amount                                          Decimal?                             @db.Decimal(14, 2)
+  payment_status                                        maintenance_contracts_payment_status @default(unpaid)
+  contract_type                                         maintenance_contracts_contract_type  @default(preventive)
+  barcode_id                                            String?                              @unique(map: "uk_maintenance_contracts_barcode") @db.VarChar(100)
+  location                                              String?                              @db.Text
+  is_active                                             Boolean                              @default(true)
+  owner_approved                                        Boolean                              @default(false)
+  client_approved                                       Boolean                              @default(false)
+  is_guarantee                                          Boolean                              @default(false)
+  is_hidden                                             Boolean                              @default(false)
+  baserow_row_id                                        BigInt?                              @unique(map: "uk_maintenance_contracts_baserow") @db.UnsignedBigInt
+  created_at                                            DateTime                             @default(now()) @db.Timestamp(0)
+  updated_at                                            DateTime                             @default(now()) @db.Timestamp(0)
+  contract_notes                                        contract_notes[]
+  data_length_metrics                                   data_length_metrics[]
+  emergency_cards                                       emergency_cards[]
+  emergency_reports                                     emergency_reports[]
+  emergency_requests                                    emergency_requests[]
+  maintenance_contract_payments                         maintenance_contract_payments[]
+  users_maintenance_contracts_client_user_idTousers     users?                               @relation("maintenance_contracts_client_user_idTousers", fields: [client_user_id], references: [id], map: "fk_contracts_client")
+  groups                                                groups?                              @relation(fields: [group_id], references: [id], map: "fk_contracts_group")
+  pricing_plans                                         pricing_plans?                       @relation(fields: [pricing_plan_id], references: [id], map: "fk_contracts_pricing")
+  projects                                              projects?                            @relation(fields: [project_id], references: [id], map: "fk_contracts_project")
+  users_maintenance_contracts_technician_user_idTousers users?                               @relation("maintenance_contracts_technician_user_idTousers", fields: [technician_user_id], references: [id], map: "fk_contracts_technician")
+  parts_quotes                                          parts_quotes[]
+  quote_files                                           quote_files[]
+  routine_visits                                        routine_visits[]
+  visit_reports                                         visit_reports[]
+
+  @@index([client_user_id], map: "idx_contracts_client")
+  @@index([group_id], map: "idx_contracts_group")
+  @@index([pricing_plan_id], map: "idx_contracts_pricing")
+  @@index([project_id], map: "idx_contracts_project")
+  @@index([technician_user_id], map: "idx_contracts_technician")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model maintenance_notifications {
+  id                                                        BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
+  name                                                      String?      @db.VarChar(255)
+  message                                                   String       @db.Text
+  created_by_user_id                                        BigInt?      @db.UnsignedBigInt
+  recipient_user_id                                         BigInt?      @db.UnsignedBigInt
+  permission_id                                             BigInt?      @db.UnsignedBigInt
+  is_read                                                   Boolean      @default(false)
+  baserow_row_id                                            BigInt?      @unique(map: "uk_maintenance_notifications_baserow") @db.UnsignedBigInt
+  created_at                                                DateTime     @default(now()) @db.Timestamp(0)
+  users_maintenance_notifications_created_by_user_idTousers users?       @relation("maintenance_notifications_created_by_user_idTousers", fields: [created_by_user_id], references: [id], map: "fk_notifications_created_by")
+  permissions                                               permissions? @relation(fields: [permission_id], references: [id], map: "fk_notifications_permission")
+  users_maintenance_notifications_recipient_user_idTousers  users?       @relation("maintenance_notifications_recipient_user_idTousers", fields: [recipient_user_id], references: [id], map: "fk_notifications_recipient")
+
+  @@index([created_by_user_id], map: "idx_notifications_created_by")
+  @@index([permission_id], map: "idx_notifications_permission")
+  @@index([recipient_user_id], map: "idx_notifications_recipient")
+}
+
+model parts_quotes {
+  id                         BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
+  name                       String?                   @db.VarChar(255)
+  spare_part_id              BigInt?                   @db.UnsignedBigInt
+  maintenance_contract_id    BigInt?                   @db.UnsignedBigInt
+  routine_inspection_card_id BigInt?                   @db.UnsignedBigInt
+  emergency_card_id          BigInt?                   @db.UnsignedBigInt
+  baserow_row_id             BigInt?                   @unique(map: "uk_parts_quotes_baserow") @db.UnsignedBigInt
+  created_at                 DateTime                  @default(now()) @db.Timestamp(0)
+  maintenance_contracts      maintenance_contracts?    @relation(fields: [maintenance_contract_id], references: [id], map: "fk_parts_quotes_contract")
+  emergency_cards            emergency_cards?          @relation(fields: [emergency_card_id], references: [id], map: "fk_parts_quotes_emergency_card")
+  routine_inspection_cards   routine_inspection_cards? @relation(fields: [routine_inspection_card_id], references: [id], map: "fk_parts_quotes_inspection_card")
+  spare_parts                spare_parts?              @relation(fields: [spare_part_id], references: [id], map: "fk_parts_quotes_part")
+  quote_files                quote_files[]
+
+  @@index([emergency_card_id], map: "fk_parts_quotes_emergency_card")
+  @@index([routine_inspection_card_id], map: "fk_parts_quotes_inspection_card")
+  @@index([maintenance_contract_id], map: "idx_parts_quotes_contract")
+  @@index([spare_part_id], map: "idx_parts_quotes_part")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model permissions {
+  id                        BigInt                      @id @default(autoincrement()) @db.UnsignedBigInt
+  name                      String                      @unique(map: "uk_permissions_name") @db.VarChar(100)
+  details                   Json?
+  homepage                  String?                     @db.VarChar(2048)
+  created_at                DateTime                    @default(now()) @db.Timestamp(0)
+  updated_at                DateTime                    @default(now()) @db.Timestamp(0)
+  maintenance_notifications maintenance_notifications[]
+  users                     users[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model pricing_plans {
+  id                    BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  name                  String                  @db.VarChar(255)
+  cost                  Decimal                 @default(0.00) @db.Decimal(14, 2)
+  vat                   Decimal?                @db.Decimal(14, 2)
+  contract_type         String?                 @db.VarChar(100)
+  is_hidden             Boolean                 @default(false)
+  baserow_row_id        BigInt?                 @unique(map: "uk_pricing_plans_baserow") @db.UnsignedBigInt
+  created_at            DateTime                @default(now()) @db.Timestamp(0)
+  updated_at            DateTime                @default(now()) @db.Timestamp(0)
+  maintenance_contracts maintenance_contracts[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model projects {
+  id                                       BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  name                                     String                  @db.VarChar(255)
+  owner_user_id                            BigInt?                 @db.UnsignedBigInt
+  address                                  String?                 @db.VarChar(500)
+  city                                     String?                 @db.VarChar(100)
+  type                                     String?                 @db.VarChar(50)
+  location_url                             String?                 @db.VarChar(2048)
+  elevator_shaft_type                      String?                 @db.VarChar(255)
+  elevator_shaft_size                      String?                 @db.VarChar(255)
+  created_by_user_id                       BigInt?                 @db.UnsignedBigInt
+  baserow_row_id                           BigInt?                 @unique(map: "uk_projects_baserow") @db.UnsignedBigInt
+  created_at                               DateTime                @default(now()) @db.Timestamp(0)
+  updated_at                               DateTime                @default(now()) @db.Timestamp(0)
+  elevator_quotes                          elevator_quotes[]
+  maintenance_contracts                    maintenance_contracts[]
+  users_projects_created_by_user_idTousers users?                  @relation("projects_created_by_user_idTousers", fields: [created_by_user_id], references: [id], map: "fk_projects_created_by")
+  users_projects_owner_user_idTousers      users?                  @relation("projects_owner_user_idTousers", fields: [owner_user_id], references: [id], map: "fk_projects_owner")
+
+  @@index([created_by_user_id], map: "idx_projects_created_by")
+  @@index([owner_user_id], map: "idx_projects_owner")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model quote_files {
+  id                      BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  name                    String?                @db.VarChar(255)
+  title                   String?                @db.VarChar(255)
+  notes                   String?                @db.Text
+  status                  String?                @db.VarChar(100)
+  is_active               Boolean                @default(true)
+  file                    Json?
+  maintenance_contract_id BigInt?                @db.UnsignedBigInt
+  parts_quote_id          BigInt?                @db.UnsignedBigInt
+  baserow_row_id          BigInt?                @unique(map: "uk_quote_files_baserow") @db.UnsignedBigInt
+  created_at              DateTime               @default(now()) @db.Timestamp(0)
+  updated_at              DateTime               @default(now()) @db.Timestamp(0)
+  maintenance_contracts   maintenance_contracts? @relation(fields: [maintenance_contract_id], references: [id], map: "fk_quote_files_contract")
+  parts_quotes            parts_quotes?          @relation(fields: [parts_quote_id], references: [id], map: "fk_quote_files_parts_quote")
+
+  @@index([maintenance_contract_id], map: "idx_quote_files_contract")
+  @@index([parts_quote_id], map: "idx_quote_files_parts_quote")
+}
+
+model quote_statuses {
+  id              BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
+  name            String            @unique(map: "uk_quote_statuses_name") @db.VarChar(100)
+  sort_order      Int               @default(0)
+  created_at      DateTime          @default(now()) @db.Timestamp(0)
+  elevator_quotes elevator_quotes[]
+}
+
+model routine_card_items {
+  id                         BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
+  routine_inspection_card_id BigInt                    @db.UnsignedBigInt
+  item_name                  String                    @db.VarChar(500)
+  item_detail                String?                   @db.Text
+  status                     routine_card_items_status @default(pending)
+  sort_order                 Int                       @default(0)
+  baserow_row_id             BigInt?                   @unique(map: "uk_routine_card_items_baserow") @db.UnsignedBigInt
+  created_at                 DateTime                  @default(now()) @db.Timestamp(0)
+  routine_inspection_cards   routine_inspection_cards  @relation(fields: [routine_inspection_card_id], references: [id], onDelete: Cascade, map: "fk_card_items_card")
+  visit_notes                visit_notes[]
+
+  @@index([routine_inspection_card_id], map: "idx_card_items_card")
+}
+
+model routine_card_template_items {
+  id                       BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  routine_card_template_id BigInt                 @db.UnsignedBigInt
+  item_name                String                 @db.VarChar(500)
+  sort_order               Int                    @default(0)
+  routine_card_templates   routine_card_templates @relation(fields: [routine_card_template_id], references: [id], onDelete: Cascade, map: "fk_template_items_template")
+
+  @@index([routine_card_template_id], map: "idx_template_items_template")
+}
+
+model routine_card_templates {
+  id                          BigInt                        @id @default(autoincrement()) @db.UnsignedBigInt
+  group_id                    BigInt?                       @db.UnsignedBigInt
+  name                        String                        @db.VarChar(255)
+  is_hidden                   Boolean                       @default(false)
+  baserow_row_id              BigInt?                       @unique(map: "uk_routine_card_templates_baserow") @db.UnsignedBigInt
+  created_at                  DateTime                      @default(now()) @db.Timestamp(0)
+  updated_at                  DateTime                      @default(now()) @db.Timestamp(0)
+  routine_card_template_items routine_card_template_items[]
+  groups                      groups?                       @relation(fields: [group_id], references: [id], map: "fk_routine_card_templates_group")
+
+  @@index([group_id], map: "idx_routine_card_templates_group")
+}
+
+model routine_inspection_cards {
+  id                 BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  routine_visit_id   BigInt               @unique(map: "uk_routine_inspection_cards_visit") @db.UnsignedBigInt
+  technician_user_id BigInt?              @db.UnsignedBigInt
+  general_note       String?              @db.Text
+  report_file        String?              @db.Text
+  is_file_generated  Boolean              @default(false)
+  baserow_row_id     BigInt?              @unique(map: "uk_routine_inspection_cards_baserow") @db.UnsignedBigInt
+  created_at         DateTime             @default(now()) @db.Timestamp(0)
+  updated_at         DateTime             @default(now()) @db.Timestamp(0)
+  parts_quotes       parts_quotes[]
+  routine_card_items routine_card_items[]
+  users              users?               @relation(fields: [technician_user_id], references: [id], map: "fk_inspection_cards_technician")
+  routine_visits     routine_visits       @relation(fields: [routine_visit_id], references: [id], onDelete: Cascade, map: "fk_inspection_cards_visit")
+  visit_notes        visit_notes[]
+  visit_ratings      visit_ratings[]
+  visit_reports      visit_reports[]
+
+  @@index([technician_user_id], map: "idx_inspection_cards_technician")
+}
+
+model routine_visits {
+  id                       BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
+  maintenance_contract_id  BigInt                    @db.UnsignedBigInt
+  group_id                 BigInt?                   @db.UnsignedBigInt
+  visit_date               DateTime                  @db.Date
+  start_datetime           DateTime?                 @db.DateTime(0)
+  end_datetime             DateTime?                 @db.DateTime(0)
+  status                   routine_visits_status     @default(pending)
+  notes                    String?                   @db.Text
+  is_confirmed             Boolean                   @default(false)
+  visit_month              Int?                      @db.UnsignedTinyInt
+  visit_year               Int?                      @db.UnsignedSmallInt
+  baserow_row_id           BigInt?                   @unique(map: "uk_routine_visits_baserow") @db.UnsignedBigInt
+  created_at               DateTime                  @default(now()) @db.Timestamp(0)
+  updated_at               DateTime                  @default(now()) @db.Timestamp(0)
+  routine_inspection_cards routine_inspection_cards?
+  maintenance_contracts    maintenance_contracts     @relation(fields: [maintenance_contract_id], references: [id], onDelete: Cascade, map: "fk_routine_visits_contract")
+  groups                   groups?                   @relation(fields: [group_id], references: [id], map: "fk_routine_visits_group")
+
+  @@index([maintenance_contract_id], map: "idx_routine_visits_contract")
+  @@index([visit_date], map: "idx_routine_visits_date")
+  @@index([group_id], map: "idx_routine_visits_group")
+}
+
+model sessions {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id    BigInt    @db.UnsignedBigInt
+  token      String    @unique(map: "uk_sessions_token") @db.VarChar(255)
+  otp        String?   @db.VarChar(10)
+  created_at DateTime  @default(now()) @db.Timestamp(0)
+  expires_at DateTime? @db.DateTime(0)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "fk_sessions_user")
+
+  @@index([user_id], map: "idx_sessions_user")
+}
+
+model spare_parts {
+  id             BigInt         @id @default(autoincrement()) @db.UnsignedBigInt
+  name           String         @db.VarChar(255)
+  part_name      String?        @db.Text
+  baserow_row_id BigInt?        @unique(map: "uk_spare_parts_baserow") @db.UnsignedBigInt
+  created_at     DateTime       @default(now()) @db.Timestamp(0)
+  parts_quotes   parts_quotes[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model users {
+  id                                                                            BigInt                      @id @default(autoincrement()) @db.UnsignedBigInt
+  phone_number                                                                  String                      @unique(map: "uk_users_phone") @db.VarChar(20)
+  permission_id                                                                 BigInt?                     @db.UnsignedBigInt
+  name                                                                          String?                     @db.VarChar(255)
+  before_name                                                                   String?                     @db.VarChar(100)
+  after_name                                                                    String?                     @db.VarChar(100)
+  address                                                                       String?                     @db.VarChar(500)
+  sex                                                                           String?                     @db.VarChar(20)
+  national_id                                                                   String?                     @db.VarChar(20)
+  baserow_row_id                                                                BigInt?                     @unique(map: "uk_users_baserow") @db.UnsignedBigInt
+  created_at                                                                    DateTime                    @default(now()) @db.Timestamp(0)
+  updated_at                                                                    DateTime                    @default(now()) @db.Timestamp(0)
+  complaints                                                                    complaints[]
+  contract_notes                                                                contract_notes[]
+  elevator_quotes_elevator_quotes_client_user_idTousers                         elevator_quotes[]           @relation("elevator_quotes_client_user_idTousers")
+  elevator_quotes_elevator_quotes_created_by_user_idTousers                     elevator_quotes[]           @relation("elevator_quotes_created_by_user_idTousers")
+  emergency_cards                                                               emergency_cards[]
+  emergency_requests                                                            emergency_requests[]
+  maintenance_contracts_maintenance_contracts_client_user_idTousers             maintenance_contracts[]     @relation("maintenance_contracts_client_user_idTousers")
+  maintenance_contracts_maintenance_contracts_technician_user_idTousers         maintenance_contracts[]     @relation("maintenance_contracts_technician_user_idTousers")
+  maintenance_notifications_maintenance_notifications_created_by_user_idTousers maintenance_notifications[] @relation("maintenance_notifications_created_by_user_idTousers")
+  maintenance_notifications_maintenance_notifications_recipient_user_idTousers  maintenance_notifications[] @relation("maintenance_notifications_recipient_user_idTousers")
+  projects_projects_created_by_user_idTousers                                   projects[]                  @relation("projects_created_by_user_idTousers")
+  projects_projects_owner_user_idTousers                                        projects[]                  @relation("projects_owner_user_idTousers")
+  routine_inspection_cards                                                      routine_inspection_cards[]
+  sessions                                                                      sessions[]
+  permissions                                                                   permissions?                @relation(fields: [permission_id], references: [id], map: "fk_users_permission")
+  visit_ratings_visit_ratings_client_user_idTousers                             visit_ratings[]             @relation("visit_ratings_client_user_idTousers")
+  visit_ratings_visit_ratings_technician_user_idTousers                         visit_ratings[]             @relation("visit_ratings_technician_user_idTousers")
+  visit_reports                                                                 visit_reports[]
+
+  @@index([permission_id], map: "idx_users_permission")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model visit_notes {
+  id                         BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  name                       String?                  @db.VarChar(255)
+  note                       String                   @db.Text
+  routine_inspection_card_id BigInt                   @db.UnsignedBigInt
+  routine_card_item_id       BigInt?                  @db.UnsignedBigInt
+  photo                      Json?
+  baserow_row_id             BigInt?                  @unique(map: "uk_visit_notes_baserow") @db.UnsignedBigInt
+  created_at                 DateTime                 @default(now()) @db.Timestamp(0)
+  routine_inspection_cards   routine_inspection_cards @relation(fields: [routine_inspection_card_id], references: [id], onDelete: Cascade, map: "fk_visit_notes_card")
+  routine_card_items         routine_card_items?      @relation(fields: [routine_card_item_id], references: [id], map: "fk_visit_notes_item")
+
+  @@index([routine_inspection_card_id], map: "idx_visit_notes_card")
+  @@index([routine_card_item_id], map: "idx_visit_notes_item")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model visit_ratings {
+  id                                            BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
+  name                                          String?                   @db.VarChar(255)
+  rating                                        String?                   @db.VarChar(50)
+  description                                   String?                   @db.Text
+  technician_user_id                            BigInt?                   @db.UnsignedBigInt
+  client_user_id                                BigInt?                   @db.UnsignedBigInt
+  routine_inspection_card_id                    BigInt?                   @db.UnsignedBigInt
+  emergency_card_id                             BigInt?                   @db.UnsignedBigInt
+  baserow_row_id                                BigInt?                   @unique(map: "uk_visit_ratings_baserow") @db.UnsignedBigInt
+  created_at                                    DateTime                  @default(now()) @db.Timestamp(0)
+  users_visit_ratings_client_user_idTousers     users?                    @relation("visit_ratings_client_user_idTousers", fields: [client_user_id], references: [id], map: "fk_visit_ratings_client")
+  emergency_cards                               emergency_cards?          @relation(fields: [emergency_card_id], references: [id], map: "fk_visit_ratings_emergency_card")
+  routine_inspection_cards                      routine_inspection_cards? @relation(fields: [routine_inspection_card_id], references: [id], map: "fk_visit_ratings_inspection_card")
+  users_visit_ratings_technician_user_idTousers users?                    @relation("visit_ratings_technician_user_idTousers", fields: [technician_user_id], references: [id], map: "fk_visit_ratings_technician")
+
+  @@index([client_user_id], map: "idx_visit_ratings_client")
+  @@index([emergency_card_id], map: "idx_visit_ratings_emergency_card")
+  @@index([routine_inspection_card_id], map: "idx_visit_ratings_inspection_card")
+  @@index([technician_user_id], map: "idx_visit_ratings_technician")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model visit_reports {
+  id                         BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
+  name                       String?                   @db.VarChar(255)
+  notes                      String?                   @db.Text
+  report_content             String?                   @db.MediumText
+  is_active                  Boolean                   @default(true)
+  maintenance_contract_id    BigInt?                   @db.UnsignedBigInt
+  routine_inspection_card_id BigInt?                   @db.UnsignedBigInt
+  emergency_card_id          BigInt?                   @db.UnsignedBigInt
+  technician_user_id         BigInt?                   @db.UnsignedBigInt
+  baserow_row_id             BigInt?                   @unique(map: "uk_visit_reports_baserow") @db.UnsignedBigInt
+  created_at                 DateTime                  @default(now()) @db.Timestamp(0)
+  updated_at                 DateTime                  @default(now()) @db.Timestamp(0)
+  maintenance_contracts      maintenance_contracts?    @relation(fields: [maintenance_contract_id], references: [id], map: "fk_visit_reports_contract")
+  emergency_cards            emergency_cards?          @relation(fields: [emergency_card_id], references: [id], map: "fk_visit_reports_emergency_card")
+  routine_inspection_cards   routine_inspection_cards? @relation(fields: [routine_inspection_card_id], references: [id], map: "fk_visit_reports_inspection_card")
+  users                      users?                    @relation(fields: [technician_user_id], references: [id], map: "fk_visit_reports_technician")
+
+  @@index([routine_inspection_card_id], map: "idx_visit_reports_card")
+  @@index([maintenance_contract_id], map: "idx_visit_reports_contract")
+  @@index([emergency_card_id], map: "idx_visit_reports_emergency")
+  @@index([technician_user_id], map: "idx_visit_reports_technician")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model whatsapp_templates {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  name           String   @unique(map: "uk_whatsapp_templates_name") @db.VarChar(255)
+  full_text      String   @db.MediumText
+  path           String?  @db.VarChar(500)
+  dynamic_fields String?  @db.VarChar(500)
+  baserow_row_id BigInt?  @unique(map: "uk_whatsapp_templates_baserow") @db.UnsignedBigInt
+  created_at     DateTime @default(now()) @db.Timestamp(0)
+  updated_at     DateTime @default(now()) @db.Timestamp(0)
+}
+
+enum elevator_addons_price_effect {
+  per_floor
+  once
+  percentage
+  other
+}
+
+enum routine_card_items_status {
+  ok
+  issue
+  na
+  pending
+}
+
+enum routine_visits_status {
+  pending
+  in_progress
+  completed
+  cancelled
+}
+
+enum maintenance_contracts_payment_status {
+  paid
+  unpaid
+  partial
+}
+
+enum maintenance_contracts_contract_type {
+  preventive
+  full_maintenance
+  inspection
+  guarantee
+}
+
+enum quote_status_enum {
+  MANAGEMENT_QUOTE_APPROVAL     @map("اعتماد العرض من الادارة")
+  CLIENT_QUOTE_APPROVAL         @map("اعتماد العرض من العميل")
+  MANAGEMENT_CONTRACT_APPROVAL  @map("اعتماد العقد من الادارة")
+  CLIENT_CONTRACT_APPROVAL      @map("اعتماد العقد من العميل")
+  FIRST_PAYMENT                 @map("سداد الدفعة الاولى")
+  PHASE_1_MATERIAL_ORDER        @map("طلب مواد المرحلة الاولى")
+  PHASE_1_MATERIAL_DELIVERY     @map("تسليم مواد المرحلة الأولى")
+  PHASE_1_MATERIAL_RECEIPT      @map("استلام مواد المرحلة الأولى")
+  PHASE_1_RECEIPT_PROTOCOL      @map("محضر استلام المرحلة الأولى")
+  CANCELLED                     @map("ملغي")
+}
