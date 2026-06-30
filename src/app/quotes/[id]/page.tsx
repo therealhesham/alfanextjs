@@ -1,6 +1,7 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
+import QuoteNotesSection from '@/components/QuoteNotesSection';
 
 export default async function ViewQuotePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -143,6 +144,8 @@ export default async function ViewQuotePage({ params }: { params: Promise<{ id: 
           )}
         </div>
 
+        {/* قسم الملاحظات */}
+        <QuoteNotesSection quoteId={quoteId.toString()} />
       </div>
     </div>
   );

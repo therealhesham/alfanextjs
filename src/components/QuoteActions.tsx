@@ -3,18 +3,15 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import StatusUpdateModal from './StatusUpdateModal';
+import QuoteNotesModal from './QuoteNotesModal';
 
 export default function QuoteActions({ quoteId }: { quoteId: string }) {
   const router = useRouter();
-  const [modalState, setModalState] = useState<{ isOpen: boolean; title: string; url: string }>({
-    isOpen: false,
-    title: '',
-    url: '',
-  });
-
+  
   const [wordMenuOpen, setWordMenuOpen] = useState(false);
   const [pdfMenuOpen, setPdfMenuOpen] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [notesModalOpen, setNotesModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleView = () => {
@@ -41,8 +38,6 @@ export default function QuoteActions({ quoteId }: { quoteId: string }) {
 
       if (data.success) {
         alert(data.message + '\nرابط الملف (محاكاة): ' + data.file_url);
-        // In a real scenario, you could use window.open(data.file_url, '_blank') to download the file
-        // or redirect them to the document viewer.
       } else {
         alert('فشل إنشاء الملف: ' + (data.message || 'خطأ غير معروف'));
       }
@@ -71,6 +66,16 @@ export default function QuoteActions({ quoteId }: { quoteId: string }) {
           disabled={loading}
         >
           <i className="fas fa-sync-alt"></i>
+        </button>
+
+        {/* Notes Button */}
+        <button 
+          className="btn-action w-9 h-9 flex items-center justify-center rounded-full text-white bg-teal-500 hover:bg-teal-600 transition-colors shadow-sm hover:shadow-md" 
+          title="الملاحظات" 
+          onClick={() => setNotesModalOpen(true)} 
+          disabled={loading}
+        >
+          <i className="fas fa-comments"></i>
         </button>
         
         {/* Word Dropdown */}
@@ -141,6 +146,12 @@ export default function QuoteActions({ quoteId }: { quoteId: string }) {
         onClose={() => setStatusModalOpen(false)} 
         quoteId={quoteId} 
         currentStatusLabel="اعتماد العرض من الادارة" 
+      />
+
+      <QuoteNotesModal
+        isOpen={notesModalOpen}
+        onClose={() => setNotesModalOpen(false)}
+        quoteId={quoteId}
       />
     </>
   );

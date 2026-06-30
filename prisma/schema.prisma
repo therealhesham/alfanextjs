@@ -165,6 +165,7 @@ model elevator_quotes {
   created_at                                      DateTime                @default(now()) @db.Timestamp(0)
   updated_at                                      DateTime                @default(now()) @db.Timestamp(0)
   elevator_quote_addons                           elevator_quote_addons[]
+  quote_notes                                     quote_notes[]
   brands                                          brands?                 @relation(fields: [brand_id], references: [id], map: "fk_quotes_brand")
   users_elevator_quotes_client_user_idTousers     users?                  @relation("elevator_quotes_client_user_idTousers", fields: [client_user_id], references: [id], map: "fk_quotes_client")
   users_elevator_quotes_created_by_user_idTousers users?                  @relation("elevator_quotes_created_by_user_idTousers", fields: [created_by_user_id], references: [id], map: "fk_quotes_created_by")
@@ -464,6 +465,17 @@ model projects {
   @@index([owner_user_id], map: "idx_projects_owner")
 }
 
+model quote_notes {
+  id             BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  quote_id       BigInt          @db.UnsignedBigInt
+  author_user_id BigInt          @db.UnsignedBigInt
+  note_text      String          @db.Text
+  created_at     DateTime        @default(now()) @db.Timestamp(0)
+  updated_at     DateTime        @default(now()) @db.Timestamp(0)
+  elevator_quotes elevator_quotes @relation(fields: [quote_id], references: [id], onDelete: Cascade)
+  users          users           @relation(fields: [author_user_id], references: [id])
+}
+
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model quote_files {
   id                      BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
@@ -614,6 +626,7 @@ model users {
   updated_at                                                                    DateTime                    @default(now()) @db.Timestamp(0)
   complaints                                                                    complaints[]
   contract_notes                                                                contract_notes[]
+  quote_notes                                                                   quote_notes[]
   elevator_quotes_elevator_quotes_client_user_idTousers                         elevator_quotes[]           @relation("elevator_quotes_client_user_idTousers")
   elevator_quotes_elevator_quotes_created_by_user_idTousers                     elevator_quotes[]           @relation("elevator_quotes_created_by_user_idTousers")
   emergency_cards                                                               emergency_cards[]
