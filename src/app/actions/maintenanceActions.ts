@@ -15,6 +15,7 @@ export type MaintenanceContractData = {
   total_amount: number | null;
   is_active: boolean;
   is_guarantee: boolean;
+  is_hidden: boolean;
   notes_count: number;
 };
 
@@ -48,6 +49,7 @@ export async function getMaintenanceContracts(): Promise<MaintenanceContractData
       total_amount: c.total_amount ? Number(c.total_amount) : null,
       is_active: c.is_active,
       is_guarantee: c.is_guarantee,
+      is_hidden: c.is_hidden,
       notes_count: c._count.contract_notes,
     }));
   } catch (error) {
