@@ -59,24 +59,30 @@ export async function getMaintenanceContracts(): Promise<MaintenanceContractData
   }
 }
 
-// Helper to clean phone numbers
+// Helper to clean phone numbers and format to standard 9-digit format (5XXXXXXXX)
 function formatPhone(phone: string): string {
   let cleaned = phone.replace(/[^0-9]/g, '');
-  if (cleaned.startsWith('0')) {
+  if (cleaned.startsWith('00966')) {
+    cleaned = cleaned.substring(5);
+  } else if (cleaned.startsWith('966')) {
+    cleaned = cleaned.substring(3);
+  } else if (cleaned.startsWith('0')) {
     cleaned = cleaned.substring(1);
   }
-  if (cleaned.length === 9 && cleaned.startsWith('5')) {
-    return '+966' + cleaned;
-  }
-  return phone;
+  return cleaned;
 }
 
 export async function searchClientByPhone(phone: string) {
   try {
     const formattedPhone = formatPhone(phone);
+    // Search using standard 9-digit, international +966, or leading 0 format to be extra robust
     const client = await prisma.users.findFirst({
       where: {
-        phone_number: formattedPhone
+        OR: [
+          { phone_number: formattedPhone },
+          { phone_number: '+966' + formattedPhone },
+          { phone_number: '0' + formattedPhone }
+        ]
       }
     });
 
@@ -114,9 +120,15 @@ export async function createClient(data: {
   try {
     const formattedPhone = formatPhone(data.phone);
     
-    // Check if client already exists
+    // Check if client already exists in any of the formats
     const existing = await prisma.users.findFirst({
-      where: { phone_number: formattedPhone }
+      where: {
+        OR: [
+          { phone_number: formattedPhone },
+          { phone_number: '+966' + formattedPhone },
+          { phone_number: '0' + formattedPhone }
+        ]
+      }
     });
 
     if (existing) {
@@ -133,7 +145,7 @@ export async function createClient(data: {
     const client = await prisma.users.create({
       data: {
         name: data.name,
-        phone_number: formattedPhone,
+        phone_number: formattedPhone, // Save in the standard 9-digit format (5XXXXXXXX)
         sex: data.gender,
         before_name: data.prefix || null,
         after_name: data.suffix || null,
