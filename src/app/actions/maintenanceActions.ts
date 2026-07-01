@@ -19,9 +19,58 @@ export type MaintenanceContractData = {
   notes_count: number;
 };
 
-export async function getMaintenanceContracts(): Promise<MaintenanceContractData[]> {
+export async function getMaintenanceContracts(
+  page: number = 1,
+  limit: number = 20,
+  searchQuery: string = '',
+  showArchived: boolean = false
+): Promise<MaintenanceContractData[]> {
   try {
+    const skip = (page - 1) * limit;
+
+    const whereClause: any = {
+      is_hidden: showArchived,
+    };
+
+    if (searchQuery) {
+      const isNumeric = !isNaN(Number(searchQuery));
+      whereClause.OR = [
+        {
+          projects: {
+            name: { contains: searchQuery }
+          }
+        },
+        {
+          users_maintenance_contracts_client_user_idTousers: {
+            name: { contains: searchQuery }
+          }
+        },
+        {
+          users_maintenance_contracts_technician_user_idTousers: {
+            name: { contains: searchQuery }
+          }
+        },
+        {
+          groups: {
+            name: { contains: searchQuery }
+          }
+        },
+        {
+          barcode_id: { contains: searchQuery }
+        }
+      ];
+
+      if (isNumeric) {
+        whereClause.OR.push({
+          id: BigInt(searchQuery)
+        });
+      }
+    }
+
     const contracts = await prisma.maintenance_contracts.findMany({
+      skip,
+      take: limit,
+      where: whereClause,
       include: {
         projects: true,
         users_maintenance_contracts_client_user_idTousers: true,
@@ -425,5 +474,54 @@ export async function createMaintenanceContract(data: {
   } catch (error) {
     console.error("Error creating maintenance contract:", error);
     return { success: false, error: "حدث خطأ أثناء حفظ العقد" };
+  }
+}
+
+export async function getMaintenanceStats() {
+  try {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const [totalActive, totalArchived, totalGuarantee, totalExpired] = await Promise.all([
+      prisma.maintenance_contracts.count({
+        where: {
+          is_hidden: false,
+          end_date: { gte: now }
+        }
+      }),
+      prisma.maintenance_contracts.count({
+        where: {
+          is_hidden: true
+        }
+      }),
+      prisma.maintenance_contracts.count({
+        where: {
+          is_hidden: false,
+          is_guarantee: true,
+          end_date: { gte: now }
+        }
+      }),
+      prisma.maintenance_contracts.count({
+        where: {
+          is_hidden: false,
+          end_date: { lt: now }
+        }
+      })
+    ]);
+
+    return {
+      totalActive,
+      totalArchived,
+      totalGuarantee,
+      totalExpired
+    };
+  } catch (error) {
+    console.error("Error fetching maintenance stats:", error);
+    return {
+      totalActive: 0,
+      totalArchived: 0,
+      totalGuarantee: 0,
+      totalExpired: 0
+    };
   }
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { MaintenanceContractData } from "@/app/actions/maintenanceActions";
+import { getMaintenanceContracts, MaintenanceContractData } from "@/app/actions/maintenanceActions";
 import ContractCard from "@/components/maintenance/ContractCard";
 import ContractTableRow from "@/components/maintenance/ContractTableRow";
 import { 
@@ -12,53 +12,118 @@ import {
   Archive, 
   ShieldCheck, 
   AlertCircle,
-  Settings
+  Settings,
+  Loader2
 } from "lucide-react";
 
 interface MaintenanceClientProps {
   initialContracts: MaintenanceContractData[];
+  initialStats: {
+    totalActive: number;
+    totalArchived: number;
+    totalGuarantee: number;
+    totalExpired: number;
+  };
 }
 
-export default function MaintenanceClient({ initialContracts }: MaintenanceClientProps) {
+export default function MaintenanceClient({ initialContracts, initialStats }: MaintenanceClientProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [searchTerm, setSearchTerm] = useState('');
   const [showArchived, setShowArchived] = useState(false);
 
-  const filteredContracts = useMemo(() => {
-    return initialContracts.filter(contract => {
-      // Filter by archive status
-      if (!showArchived && contract.is_hidden) return false;
-      if (showArchived && !contract.is_hidden) return false;
+  // Pagination and server-side state
+  const [contracts, setContracts] = useState<MaintenanceContractData[]>(initialContracts);
+  const [page, setPage] = useState(1);
+  const [hasMore, setMore] = useState(initialContracts.length >= 20);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
-      // Filter by search term
-      if (searchTerm) {
-        const lowerTerm = searchTerm.toLowerCase();
-        return (
-          contract.project_name?.toLowerCase().includes(lowerTerm) ||
-          contract.client_name?.toLowerCase().includes(lowerTerm) ||
-          contract.technician_name?.toLowerCase().includes(lowerTerm) ||
-          contract.id.includes(lowerTerm)
-        );
+  const loadMore = async () => {
+    if (isLoading || !hasMore) return;
+    setIsLoading(true);
+    try {
+      const nextPage = page + 1;
+      const newContracts = await getMaintenanceContracts(nextPage, 20, searchTerm, showArchived);
+      if (newContracts.length > 0) {
+        setContracts(prev => [...prev, ...newContracts]);
+        setPage(nextPage);
+        setMore(newContracts.length >= 20);
+      } else {
+        setMore(false);
       }
-
-      return true;
-    });
-  }, [initialContracts, searchTerm, showArchived]);
-
-  // Dynamic Active Status based on End Date
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  
-  const isContractActive = (endDate: Date | string | null | undefined) => {
-    if (!endDate) return false;
-    return new Date(endDate) >= now;
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Stats
-  const totalActive = initialContracts.filter(c => !c.is_hidden && isContractActive(c.end_date)).length;
-  const totalArchived = initialContracts.filter(c => c.is_hidden).length;
-  const totalGuarantee = initialContracts.filter(c => !c.is_hidden && isContractActive(c.end_date) && c.is_guarantee).length;
-  const totalExpired = initialContracts.filter(c => !c.is_hidden && !isContractActive(c.end_date)).length;
+  // Debounced search
+  useEffect(() => {
+    // Avoid double fetching on initial render
+    if (searchTerm === '' && page === 1 && contracts === initialContracts) {
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await getMaintenanceContracts(1, 20, searchTerm, showArchived);
+        setContracts(results);
+        setPage(1);
+        setMore(results.length >= 20);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
+
+  const handleArchiveToggle = async () => {
+    const nextArchived = !showArchived;
+    setShowArchived(nextArchived);
+    setIsSearching(true);
+    try {
+      const results = await getMaintenanceContracts(1, 20, searchTerm, nextArchived);
+      setContracts(results);
+      setPage(1);
+      setMore(results.length >= 20);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Infinite Scroll Observer
+  const observerTarget = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoading && !isSearching) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [hasMore, isLoading, isSearching, page, searchTerm, showArchived]);
+
+  // Stats from server load
+  const { totalActive, totalArchived, totalGuarantee, totalExpired } = initialStats;
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-6" dir="rtl">
@@ -135,14 +200,17 @@ export default function MaintenanceClient({ initialContracts }: MaintenanceClien
               placeholder="ابحث برقم العقد، اسم المشروع، العميل..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-4 pr-10 py-2.5 rounded-full border border-slate-200 focus:border-[#977e2b] focus:ring-2 focus:ring-[#977e2b]/20 outline-none transition-all text-sm"
+              className="w-full pl-10 pr-10 py-2.5 rounded-full border border-slate-200 focus:border-[#977e2b] focus:ring-2 focus:ring-[#977e2b]/20 outline-none transition-all text-sm"
             />
             <Search size={18} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            {isSearching && (
+              <Loader2 size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#977e2b] animate-spin" />
+            )}
           </div>
 
           {/* Filters (Archive Toggle) */}
           <button 
-            onClick={() => setShowArchived(!showArchived)}
+            onClick={handleArchiveToggle}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-semibold transition-all ${showArchived ? 'bg-[#977e2b] text-white border-[#977e2b] shadow-md shadow-[#977e2b]/20' : 'bg-white text-slate-600 border-slate-200 hover:border-[#977e2b] hover:text-[#977e2b]'}`}
           >
             <Archive size={16} />
@@ -155,7 +223,7 @@ export default function MaintenanceClient({ initialContracts }: MaintenanceClien
 
         <div className="flex items-center gap-4">
           <div className="text-sm text-slate-500">
-            النتائج: <strong className="text-[#1e293b]">{filteredContracts.length}</strong>
+            النتائج: <strong className="text-[#1e293b]">{contracts.length}</strong>
           </div>
           
           {/* View Toggles */}
@@ -177,7 +245,7 @@ export default function MaintenanceClient({ initialContracts }: MaintenanceClien
       </div>
 
       {/* Content */}
-      {filteredContracts.length === 0 ? (
+      {contracts.length === 0 ? (
         <div className="bg-white rounded-xl p-12 border border-slate-200 text-center text-slate-500">
           <Settings size={48} className="mx-auto mb-4 opacity-20" />
           <h3 className="text-lg font-semibold text-slate-700 mb-1">لا توجد نتائج</h3>
@@ -186,7 +254,7 @@ export default function MaintenanceClient({ initialContracts }: MaintenanceClien
       ) : (
         viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredContracts.map(contract => (
+            {contracts.map(contract => (
               <ContractCard key={contract.id} contract={contract} />
             ))}
           </div>
@@ -209,7 +277,7 @@ export default function MaintenanceClient({ initialContracts }: MaintenanceClien
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredContracts.map(contract => (
+                  {contracts.map(contract => (
                     <ContractTableRow key={contract.id} contract={contract} />
                   ))}
                 </tbody>
@@ -218,6 +286,21 @@ export default function MaintenanceClient({ initialContracts }: MaintenanceClien
           </div>
         )
       )}
+
+      {/* Intersection Observer Target for Infinite Scroll */}
+      <div ref={observerTarget} className="w-full py-6 flex justify-center items-center">
+        {isLoading && (
+          <div className="flex items-center gap-2 text-slate-500 font-semibold text-sm">
+            <Loader2 size={20} className="animate-spin text-[#977e2b]" />
+            <span>جاري تحميل المزيد من العقود...</span>
+          </div>
+        )}
+        {!hasMore && contracts.length > 0 && (
+          <div className="text-xs text-slate-400 font-semibold">
+            تم تحميل جميع عقود الصيانة.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
